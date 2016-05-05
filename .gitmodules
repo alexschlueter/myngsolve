@@ -1,0 +1,3 @@
+[submodule "mylittlengsolve"]
+	path = mylittlengsolve
+	url = https://gitlab.asc.tuwien.ac.at/jschoeberl/mylittlengsolve.git
