@@ -1,93 +1,97 @@
-# solve the Poisson equation -Delta u = f
-# with Dirichlet boundary condition u = 0
+# coupled volume-surface reaction-diffusion process
+# http://arxiv.org/abs/1511.00846
 
 from ngsolve import *
-from netgen.geom2d import unit_square
 from netgen.geom2d import MakeCircle
 from netgen.geom2d import SplineGeometry
-from netgen.csg import unit_cube
 
 ngsglobals.msg_level = 1
 
-dt = 0.001
+order = 3
+
+# time step and end
+tau = 1e-3
 tend = 1.0
 
-dL = 1.0 # 0.01
-dl = 1.0 # 0.02
-gamma = 1.0 #2
-lamdba = 1.0 #4
+# model parameters
+dL = 0.01
+dl = 0.02
+gamma = 2.0
+lamdba = 4.0
 
-# generate a triangular mesh of mesh-size 0.2
-# mesh = Mesh (unit_square.GenerateMesh(maxh=0.2))
+# geometry and mesh
 circ = SplineGeometry()
 MakeCircle(circ, (0,0), 1, bc=1)
-# mesh = Mesh (unit_cube.GenerateMesh(maxh=0.2))
 mesh = Mesh(circ.GenerateMesh(maxh=0.2))
-bnd = [i for i, n in enumerate(mesh.GetBoundaries())]
-print(str(bnd))
 
-# H1-conforming finite element space
-V = H1(mesh, order=3)
-W = H1(mesh, order=3, flags={"definedon": [], "definedonbound": [1,2,3,4,5,6], "dirichlet": [1,2,3,4,5,6]})
+# H1-conforming finite element spaces
+# inside the bulk:
+Vbulk = H1(mesh, order=order)
+# on the surface:
+Vsurface = H1(mesh, order=order, flags={"definedon": [], "definedonbound": [1], "dirichlet": [1]})
 
+# construct compound finite element space
+fes = FESpace([Vbulk, Vsurface])
 
-
-fes = FESpace([V, W])
-
+# get trial and test functions...
 L,l = fes.TrialFunction()
 v,w = fes.TestFunction()
 
-# the bilinear-form
-a = BilinearForm (fes, symmetric=True)
-a += SymbolicBFI(dL * L.Deriv() * v.Deriv())
-a += SymbolicBFI(dl * l.Trace().Deriv() * w.Trace().Deriv(), BND)
-a += SymbolicBFI((lamdba * L - gamma * l.Trace()) * (v - w.Trace()), BND)
+# ...and their derivatives
+# inside the bulk:
+gradL = L.Deriv()
+gradv = v.Deriv()
 
+# on the surface:
+gradl = l.Trace().Deriv()
+gradw = w.Trace().Deriv()
+
+# first bilinear form
+a = BilinearForm (fes, symmetric=True)
+a += SymbolicBFI(dL * gradL * gradv)
+# boundary terms
+a += SymbolicBFI(dl * gradl * gradw, BND)
+a += SymbolicBFI((lamdba * L - gamma * l) * (v - w), BND)
+
+# second bilinear form
 c = BilinearForm(fes, symmetric=True)
 c += SymbolicBFI(L * v)
-c += SymbolicBFI(l.Trace() * w.Trace(), BND)
+# boundary term
+c += SymbolicBFI(l * w, BND)
 
 a.Assemble()
-print("a geht")
 c.Assemble()
-print("c")
 
-# sL = GridFunction(V)
-# sL.Set(0.5 * (x * x + y * y))
-# sl = GridFunction(W)
-# sl.Set(0.5 * (1 + x))
+# the solution field
 s = GridFunction(fes)
+
+# initial conditions
+# bulk component:
 s.components[0].Set(0.5 * (x * x + y * y))
+# surface component:
 s.components[1].Set(0.5 * (1 + x), boundary=True)
 
+# build matrix for implicit Euler
 mstar = a.mat.CreateMatrix()
-mstar.AsVector().data = c.mat.AsVector() + dt * (a.mat.AsVector())
+mstar.AsVector().data = c.mat.AsVector() + tau * a.mat.AsVector()
+
 alldofs = BitArray(fes.ndof)
 for i in range(fes.ndof):
     alldofs.Set(i)
 
 invmat = mstar.Inverse(alldofs)
 rhs = s.vec.CreateVector()
+
 Draw(s.components[1], mesh, "l")
 Draw(s.components[0], mesh, "L")
+
+# implicit Euler
 t = 0.0
-input("")
 while t < tend:
+    print("t=", t)
+
     rhs.data = c.mat * s.vec
     s.vec.data = invmat * rhs
-    t += dt
+
+    t += tau
     Redraw(blocking=True)
-    input("")
-
-
-# # rhs = u.vec.CreateVector()
-
-# # Draw (u)
-# # t=0.0
-# # while t < tend:
-# #     rhs.data = dt * f.vec 
-# #     rhs.data += m.mat * u.vec
-# #     u.vec.data = invmat * rhs
-# #     t += dt
-# #     Redraw()
-# #     input("")
