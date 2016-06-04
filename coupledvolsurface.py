@@ -23,6 +23,7 @@ lamdba = 4.0
 circ = SplineGeometry()
 MakeCircle(circ, (0,0), 1, bc=1)
 mesh = Mesh(circ.GenerateMesh(maxh=0.2))
+mesh.Curve(order)
 
 # H1-conforming finite element spaces
 # inside the bulk:
@@ -75,11 +76,7 @@ s.components[1].Set(0.5 * (1 + x), boundary=True)
 mstar = a.mat.CreateMatrix()
 mstar.AsVector().data = c.mat.AsVector() + tau * a.mat.AsVector()
 
-alldofs = BitArray(fes.ndof)
-for i in range(fes.ndof):
-    alldofs.Set(i)
-
-invmat = mstar.Inverse(alldofs)
+invmat = mstar.Inverse()
 rhs = s.vec.CreateVector()
 
 Draw(s.components[1], mesh, "l")
@@ -88,7 +85,7 @@ Draw(s.components[0], mesh, "L")
 # implicit Euler
 t = 0.0
 while t < tend:
-    print("t=", t)
+    print("\r t = {:10.6e}".format(t),end="")
 
     rhs.data = c.mat * s.vec
     s.vec.data = invmat * rhs
