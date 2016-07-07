@@ -11,22 +11,23 @@ def numericalSort(value):
     parts[1::2] = map(int, parts[1::2])
     return parts
 
-outfile = '/home/alex/Videos/neu_120_c.ogv'
-func = 'c'
-anim_duration = 40.0
-# anim_duration = 5.0
+outfile = '/home/alex/Videos/keyfrtest.ogv'
+func = 'e'
+# anim_duration = 40.0
+anim_duration = 5.0
 pause_after_duration = 5.0
-frame_rate = 50.0
 total_duration = anim_duration + pause_after_duration
-fileNames = sorted(glob.glob('/home/alex/code/ngsapps/precip_gauss_120_quad/*.vtk'), key=numericalSort)
+fileNames = sorted(glob.glob('/home/alex/code/ngsapps/precip_gauss_40/*.vtk'), key=numericalSort)
 # print(fileNames)
 # create a new 'Legacy VTK Reader'
 reader = LegacyVTKReader(FileNames=fileNames)
+framerate = len(reader.TimestepValues) / anim_duration
+print 'Resulting framerate: ' + framerate
 
 # get active view
 renderView1 = GetActiveViewOrCreate('RenderView')
 # uncomment following to set a specific view size
-renderView1.ViewSize = [1280, 720]
+renderView1.ViewSize = [1920, 1080]
 # change interaction mode for render view
 renderView1.InteractionMode = '3D'
 
@@ -47,8 +48,8 @@ else:
 # set scalar coloring
 ColorBy(display, ('POINTS', func))
 
-# show color bar/color legend
-display.SetScalarBarVisibility(renderView1, True)
+# # show color bar/color legend
+# display.SetScalarBarVisibility(renderView1, True)
 
 # get color transfer function/color map for func
 LUT = GetColorTransferFunction(func)
@@ -66,13 +67,13 @@ else:
     PWF.RescaleTransferFunction(-0.4, 0.1)
     LUT.RescaleTransferFunction(-0.4, 0.1)
 
-# get color legend/bar for LUT in view renderView1
-LUTColorBar = GetScalarBar(LUT, renderView1)
-# Properties modified on LUTColorBar
-LUTColorBar.DrawSubTickMarks = 0
-LUTColorBar.RangeLabelFormat = '%.1f'
-LUTColorBar.AutomaticLabelFormat = 0
-LUTColorBar.LabelFormat = '%-#6.2g'
+# # get color legend/bar for LUT in view renderView1
+# LUTColorBar = GetScalarBar(LUT, renderView1)
+# # Properties modified on LUTColorBar
+# LUTColorBar.DrawSubTickMarks = 0
+# LUTColorBar.RangeLabelFormat = '%.1f'
+# LUTColorBar.AutomaticLabelFormat = 0
+# LUTColorBar.LabelFormat = '%-#6.2g'
 
 renderView1.AxesGrid.Visibility = 1
 # Properties modified on renderView1.AxesGrid
@@ -83,8 +84,8 @@ renderView1.AxesGrid.ZTitle = ''
 
 # current camera placement for renderView1
 if func == 'e':
-    renderView1.CameraPosition = [100, -50, 350]
-    renderView1.CameraFocalPoint = [100, 100, -20]
+    renderView1.CameraPosition = [200, -50, 450]
+    renderView1.CameraFocalPoint = [200, 100, -20]
 else:
     renderView1.CameraPosition = [100, 100, 400]
     renderView1.CameraFocalPoint = [100, 100, 0]
@@ -120,19 +121,19 @@ tt = GetTimeTrack()
 tt.KeyFrames = [keyf0, keyf1, keyf2]
 tt.UseAnimationTime = 0
 
-# Properties modified on animationScene1
-animationScene1.PlayMode = 'Sequence'
+# # Properties modified on animationScene1
+# animationScene1.PlayMode = 'Sequence'
 
-# Properties modified on animationScene1
-animationScene1.NumberOfFrames = int(total_duration * frame_rate)
+# # Properties modified on animationScene1
+# animationScene1.NumberOfFrames = int(total_duration * frame_rate)
 
-# save animation images/movie
-WriteAnimation(outfile, Magnification=1, FrameRate=frame_rate, Compression=False)
+# # save animation images/movie
+# WriteAnimation(outfile, Magnification=1, FrameRate=frame_rate, Compression=False)
 
 # # Properties modified on animationScene1
 # animationScene1.PlayMode = 'Real Time'
 
 # # Properties modified on animationScene1
-# animationScene1.Duration = total_duration
+# animationScene1.Duration = int(total_duration)
 
 # animationScene1.Play()
